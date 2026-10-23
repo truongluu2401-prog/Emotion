@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from modules.google_auth import sync_google_user
+from modules.google_auth import sync_google_user, google_is_logged_in
 from pathlib import Path
 from modules.auth_database import init_auth_database
 from modules.auth_service import refresh_user
@@ -64,7 +64,7 @@ if "auth_user" not in st.session_state:
     st.session_state["auth_user"] = None
 
 # Đồng bộ danh tính Google (nếu đăng nhập qua Google).
-if st.user.get("is_logged_in", False):
+if google_is_logged_in():
     try:
         google_user = sync_google_user()
         if google_user is None:
@@ -86,7 +86,7 @@ if st.session_state["auth_user"] is not None:
 def logout_user():
     st.session_state["auth_user"] = None
     st.session_state["current_menu"] = "🏠 Trang chủ"
-    if st.user.is_logged_in:
+    if google_is_logged_in():
         st.logout()
 
 

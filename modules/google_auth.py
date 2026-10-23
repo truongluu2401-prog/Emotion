@@ -7,13 +7,36 @@ import streamlit as st
 from modules.auth_database import get_connection
 
 
+def google_is_logged_in():
+    """Return False if Streamlit OIDC is not configured or not available."""
+    try:
+        return bool(st.user.get("is_logged_in", False))
+    except (KeyError, AttributeError, RuntimeError):
+        return False
+    except Exception as exc:
+        # Some Streamlit releases raise StreamlitAuthError for missing OIDC settings.
+        if type(exc).__name__ in ("StreamlitAuthError", "StreamlitAPIException"):
+            return False
+        raise
+
+
 def google_login():
-    st.login("google")
+    """Attempt real Google OAuth; do not create a fake login session."""
+    try:
+        st.login("google")
+    except Exception as exc:
+        if type(exc).__name__ in ("StreamlitAuthError", "StreamlitAPIException", "KeyError"):
+            st.error(
+                "Đăng nhập Google chưa được cấu hình trên máy chủ. "
+                "Hãy dùng email/mật khẩu hoặc liên hệ quản trị viên để cấu hình Google OAuth."
+            )
+            return
+        raise
 
 
 def sync_google_user():
     """Đồng bộ tài khoản Google đã xác thực với SQLite."""
-    if not st.user.is_logged_in:
+    if not google_is_logged_in():
         return None
 
     claims = st.user.to_dict()
