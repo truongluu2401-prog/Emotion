@@ -200,25 +200,16 @@ if st.session_state["auth_user"] is None:
         <div class="footer-bottom">© 2026 Alone Team · EmotionAI là hệ thống AI hỗ trợ phân tích cảm xúc · Sản phẩm phục vụ học tập và nghiên cứu</div></div>''',unsafe_allow_html=True)
         
     # Mạng xã hội ALONE AI
+       # Mạng xã hội - chỉ hiển thị ở trang chủ công khai
     st.markdown(
         """
-<div style="display:flex;justify-content:center;align-items:center;gap:30px;margin:25px 0;">
-    <a href="https://www.facebook.com/p/ALONE-AI-61595586518987/"
-       target="_blank" rel="noopener noreferrer">
-        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg"
-             width="42" height="42" alt="Facebook"
-             style="filter:invert(30%) sepia(95%) saturate(1800%) hue-rotate(200deg);">
-    </a>
-    <a href="https://www.tiktok.com/@laanhma3"
-       target="_blank" rel="noopener noreferrer">
-        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/tiktok.svg"
-             width="42" height="42" alt="TikTok">
-    </a>
+<div style="display:flex;justify-content:center;align-items:center;gap:28px;margin:25px 0;">
+<a href="https://www.facebook.com/p/ALONE-AI-61595586518987/" target="_blank" rel="noopener noreferrer" title="Facebook Alone AI"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg" width="40" height="40" alt="Facebook" style="filter:invert(30%) sepia(95%) saturate(1800%) hue-rotate(200deg);"></a>
+<a href="https://www.tiktok.com/@laanhma3" target="_blank" rel="noopener noreferrer" title="TikTok Alone AI"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/tiktok.svg" width="40" height="40" alt="TikTok"></a>
 </div>
         """,
         unsafe_allow_html=True,
     )
-
     st.stop()
 
 # Chỉ truy cập thông tin người dùng sau khi đã xác thực.
