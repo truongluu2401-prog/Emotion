@@ -26,13 +26,18 @@ def _patient(patient_id):
         raise PermissionError('Chỉ bệnh nhân đang hoạt động mới được đặt lịch.')
 
 
-def available_slots(doctor_id):
+def available_slots(doctor_id, selected_date=None):
     require_approved_doctor(doctor_id)
+    day = selected_date.isoformat() if isinstance(selected_date, date) else selected_date
     with get_connection() as c:
-        return [dict(r) for r in c.execute('''SELECT s.id,s.work_date,s.start_time,s.end_time
+        rows = c.execute("""SELECT s.id,s.work_date,s.start_time,s.end_time
             FROM doctor_work_slots s WHERE s.doctor_id=? AND s.work_date>=?
-            AND NOT EXISTS (SELECT 1 FROM doctor_appointments a WHERE a.slot_id=s.id AND a.status IN ('pending','confirmed'))
-            ORDER BY s.work_date,s.start_time''',(doctor_id,date.today().isoformat())).fetchall()]
+            AND (? IS NULL OR s.work_date=?)
+            AND NOT EXISTS (SELECT 1 FROM doctor_appointments a
+                WHERE a.slot_id=s.id AND a.status IN ('pending','confirmed'))
+            ORDER BY s.work_date,s.start_time""",
+            (doctor_id,date.today().isoformat(),day,day)).fetchall()
+    return [dict(r) for r in rows if datetime.fromisoformat(r['work_date']+'T'+r['start_time']) > datetime.now()]
 
 
 def book(patient_id,slot_id,note=''):

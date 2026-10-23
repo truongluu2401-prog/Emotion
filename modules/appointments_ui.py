@@ -1,5 +1,6 @@
 """Streamlit appointment views for patient and doctor."""
 import streamlit as st
+from datetime import date, timedelta
 from modules.appointments import available_slots, book, list_for_patient, list_for_doctor, doctor_action, patient_cancel
 from modules.doctor_approval import approved_doctors
 
@@ -13,18 +14,20 @@ def show_patient_appointments(patient_id):
         st.info('Chưa có bác sĩ được phê duyệt.')
     else:
         doctor=st.selectbox('Chọn bác sĩ',doctors,format_func=lambda d:f"{d['full_name']} — {d['specialty']}")
-        slots=available_slots(doctor['id'])
+        st.caption('Chọn ngày trước, sau đó chọn ca còn trống của bác sĩ.')
+        selected_day=st.date_input('Chọn ngày khám', value=date.today(), min_value=date.today(), max_value=date.today()+timedelta(days=180), key=f"appointment_date_{doctor['id']}", format='DD/MM/YYYY')
+        slots=available_slots(doctor['id'], selected_day)
         if not slots:
-            st.info('Bác sĩ chưa có ca trống. Hãy thử lại sau.')
+            st.info('Ngày này chưa có giờ trống hoặc các ca đã được đặt. Hãy chọn ngày khác.')
         else:
             with st.form('patient_book_appointment'):
-                slot=st.selectbox('Ngày và giờ khám',slots,format_func=lambda s:f"{s['work_date']} · {s['start_time']} – {s['end_time']}")
+                slot=st.selectbox('Chọn giờ khám',slots,format_func=lambda s:f"{s['start_time']} – {s['end_time']}")
                 note=st.text_area('Ghi chú ngắn (không bắt buộc, không nhập thông tin sức khỏe nhạy cảm)',max_chars=500)
                 submit=st.form_submit_button('Gửi yêu cầu đặt lịch',type='primary')
             if submit:
                 try:
                     book(patient_id,slot['id'],note)
-                    st.success('Đã gửi yêu cầu. Vui lòng chờ bác sĩ xác nhận.')
+                    st.success('Đã gửi yêu cầu. Ca được giữ chỗ trong khi chờ bác sĩ xác nhận.')
                     st.rerun()
                 except (ValueError,PermissionError) as e: st.error(str(e))
     st.divider()

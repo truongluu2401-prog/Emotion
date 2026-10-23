@@ -88,6 +88,9 @@ def add_slot(doctor_id, work_date, start_time, end_time):
 def remove_slot(doctor_id, slot_id):
     _require_doctor(doctor_id)
     with get_connection() as conn:
+        active = conn.execute("SELECT 1 FROM doctor_appointments WHERE slot_id=? AND status IN ('pending','confirmed')",(slot_id,)).fetchone()
+        if active:
+            raise ValueError('Ca đang có lịch hẹn chờ xác nhận hoặc đã xác nhận. Hãy xử lý lịch hẹn trước khi xóa ca.')
         conn.execute('DELETE FROM doctor_work_slots WHERE id=? AND doctor_id=?',(slot_id,doctor_id))
 
 
