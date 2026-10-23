@@ -6,6 +6,7 @@ from modules.google_auth import sync_google_user, google_is_logged_in
 from pathlib import Path
 import base64
 from modules.auth_database import init_auth_database
+from modules.cloud_admin import bootstrap_cloud_admin
 from modules.doctor_approval import initialize as init_doctor_approval, get_application, approved_doctors
 from modules.auth_service import refresh_user
 from modules.admin_ui import show_admin_dashboard
@@ -62,6 +63,7 @@ if MODERN_CSS.exists():
 init_database()
 init_auth_database()
 init_doctor_approval()
+bootstrap_cloud_admin()
 
 # ==========================================
 # ĐĂNG KÝ - ĐĂNG NHẬP - ĐĂNG XUẤT
