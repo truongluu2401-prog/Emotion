@@ -89,3 +89,35 @@ def remove_slot(doctor_id, slot_id):
     _require_doctor(doctor_id)
     with get_connection() as conn:
         conn.execute('DELETE FROM doctor_work_slots WHERE id=? AND doctor_id=?',(slot_id,doctor_id))
+
+
+def add_week_slots(doctor_id, week_start, weekdays, start_time, end_time):
+    """Create selected weekdays in one calendar week, atomically."""
+    from datetime import timedelta
+    _require_doctor(doctor_id)
+    if not isinstance(week_start, date) or week_start.weekday() != 0:
+        raise ValueError('Ngày bắt đầu tuần phải là thứ Hai.')
+    if not isinstance(start_time, time) or not isinstance(end_time, time) or start_time >= end_time:
+        raise ValueError('Giờ kết thúc phải sau giờ bắt đầu.')
+    days = sorted(set(weekdays))
+    if not days or any(not isinstance(day, int) or day not in range(7) for day in days):
+        raise ValueError('Hãy chọn ít nhất một ngày hợp lệ trong tuần.')
+    start, end = start_time.strftime('%H:%M'), end_time.strftime('%H:%M')
+    now = datetime.now(timezone.utc).isoformat()
+    dates = [week_start + timedelta(days=d) for d in days]
+    dates = [d for d in dates if d >= date.today()]
+    if not dates:
+        raise ValueError('Các ngày được chọn đều đã qua.')
+    with get_connection() as conn:
+        for d in dates:
+            day = d.isoformat()
+            overlap = conn.execute('''SELECT 1 FROM doctor_work_slots
+                WHERE doctor_id=? AND work_date=? AND start_time<? AND end_time>?''',
+                (doctor_id, day, end, start)).fetchone()
+            if overlap:
+                raise ValueError(f'Lịch ngày {day} bị trùng. Chưa thêm ca nào.')
+        for d in dates:
+            conn.execute('''INSERT INTO doctor_work_slots
+                (doctor_id,work_date,start_time,end_time,created_at)
+                VALUES (?,?,?,?,?)''', (doctor_id, d.isoformat(), start, end, now))
+    return len(dates)

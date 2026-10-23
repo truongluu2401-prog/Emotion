@@ -8,7 +8,7 @@ import base64
 from modules.auth_database import init_auth_database
 from modules.doctor_approval import initialize as init_doctor_approval, get_application, approved_doctors
 from modules.doctor_profile import initialize as init_doctor_profile
-from modules.doctor_profile_ui import show_doctor_profile, show_public_doctor_details
+from modules.doctor_profile_ui import show_doctor_profile, show_doctor_directory
 from modules.auth_service import refresh_user
 from modules.admin_ui import show_admin_dashboard
 from modules.profile_ui import show_profile_page
@@ -1074,19 +1074,7 @@ elif menu == "🩺 Trạng thái hồ sơ bác sĩ":
         show_doctor_profile(user["id"])
 
 elif menu == "🩺 Danh sách bác sĩ":
-    st.header("🩺 Đội ngũ bác sĩ")
-    doctors = approved_doctors()
-    if not doctors: st.info("Hiện chưa có bác sĩ được xác minh.")
-    for doctor in doctors:
-        with st.container(border=True):
-            st.subheader(doctor["full_name"])
-            st.write(f"**Chuyên ngành:** {doctor['specialty']}")
-            st.write(f"**Trường đào tạo:** {doctor['school']}")
-            st.write(f"**Bằng cấp:** {doctor['degree']}")
-            st.write(f"**Kinh nghiệm:** {doctor['experience_years']} năm")
-            st.write(doctor['bio'])
-            show_public_doctor_details(doctor["id"])
-            st.caption("Chức năng đặt lịch sẽ được bổ sung ở Bước 11.4.")
+    show_doctor_directory()
 
 elif menu == "🛡️ Quản trị hệ thống":
     if user["role"] != "admin":
