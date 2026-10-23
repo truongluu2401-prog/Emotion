@@ -4,6 +4,7 @@ import pandas as pd
 import sqlite3
 from modules.google_auth import sync_google_user, google_is_logged_in
 from pathlib import Path
+import base64
 from modules.auth_database import init_auth_database
 from modules.auth_service import refresh_user
 from modules.admin_ui import show_admin_dashboard
@@ -29,13 +30,17 @@ from modules.database import (
 # ==========================================
 
 st.set_page_config(
-    page_title="EmotionAI - Nhận diện cảm xúc",
-    page_icon="🧠",
+    page_title="Alone | Hệ thống EmotionAI",
+    page_icon="🌿",
     layout="wide"
 )
 
 BASE_DIR = Path(__file__).resolve().parent
 CSS_PATH = BASE_DIR / "assets" / "style.css"
+LOGO_PATH = BASE_DIR / "assets" / "alone_logo.svg"
+LOGO_DATA = "data:image/svg+xml;base64," + base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii") if LOGO_PATH.exists() else ""
+LOGO_HTML = f'<img class="alone-logo" src="{LOGO_DATA}" alt="Logo Alone" />' if LOGO_DATA else '<span class="alone-logo-fallback">✧</span>'
+
 
 # Tải giao diện CSS
 if CSS_PATH.exists():
@@ -109,10 +114,10 @@ def require_login(target):
 if st.session_state["auth_user"] is None:
     # Tránh sidebar xuất hiện với người xem chưa đăng nhập.
     st.markdown('<style>[data-testid="stSidebar"]{display:none!important} [data-testid="stMainBlockContainer"]{max-width:1600px!important}</style>',unsafe_allow_html=True)
-    st.markdown('<div class="public-strip">✦ EMOTIONAI · NỀN TẢNG AI HỖ TRỢ PHÂN TÍCH CẢM XÚC</div>',unsafe_allow_html=True)
+    st.markdown('<div class="public-strip">✦ ALONE · POWERED BY EMOTIONAI</div>',unsafe_allow_html=True)
     brand, home, about, login, signup = st.columns([4.7,1.2,1.35,1.4,1.4],vertical_alignment="center",gap="small")
     with brand:
-        st.markdown('<div class="public-brand"><div class="brand-mark">🧠</div><div><strong>EmotionAI</strong><small>AI Emotion Analysis for Clinicians</small></div></div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="public-brand">{LOGO_HTML}<div><strong>Alone</strong><small>Powered by EmotionAI</small></div></div>',unsafe_allow_html=True)
     with home:
         if st.button("⌂ Trang chủ",key="pub_home",use_container_width=True):
             st.session_state["public_view"]="home";st.rerun()
@@ -134,8 +139,8 @@ if st.session_state["auth_user"] is None:
             show_reset_password()
     else:
         st.markdown('''<section class="landing-hero"><div class="landing-hero-content">
-        <div class="landing-pill">✦ CÔNG NGHỆ AI HỖ TRỢ CHUYÊN GIA TÂM LÝ</div>
-        <h1>Hiểu cảm xúc sâu hơn<br><span>cùng trí tuệ nhân tạo</span></h1>
+        <div class="landing-pill">✦ ALONE · POWERED BY EMOTIONAI</div>
+        <h1>Alone — thấu hiểu cảm xúc<br><span>cùng hệ thống EmotionAI</span></h1>
         <p>EmotionAI hỗ trợ bác sĩ quan sát biểu cảm khuôn mặt, tín hiệu giọng nói,
         nhịp tim và kết quả PHQ-9. Theo dõi các phiên phân tích theo từng bệnh nhân
         và tổng hợp thông tin phục vụ đánh giá chuyên môn.</p>
@@ -151,7 +156,7 @@ if st.session_state["auth_user"] is None:
         st.markdown('''<div class="landing-benefits"><div><b>🔬 Phân tích đa phương thức</b><span>Kết hợp khuôn mặt, giọng nói và BPM</span></div>
         <div><b>📋 Đánh giá có cơ sở</b><span>Ghi nhận PHQ-9 và nhận định bác sĩ</span></div>
         <div><b>🔐 Dữ liệu theo tài khoản</b><span>Yêu cầu đăng nhập khi sử dụng tính năng</span></div></div>''',unsafe_allow_html=True)
-        st.markdown('''<div class="landing-section-head"><span>✦ KHÁM PHÁ EMOTIONAI</span><h2>Công cụ hỗ trợ phân tích cảm xúc</h2>
+        st.markdown('''<div class="landing-section-head"><span>✦ KHÁM PHÁ HỆ THỐNG EMOTIONAI</span><h2>Công cụ hỗ trợ phân tích cảm xúc</h2>
         <p>Chọn một tính năng để bắt đầu. Hệ thống sẽ yêu cầu đăng nhập để bảo vệ dữ liệu.</p></div>''',unsafe_allow_html=True)
         for i in range(0,len(PUBLIC_FEATURES),3):
             cols=st.columns(3,gap="large")
@@ -164,10 +169,10 @@ if st.session_state["auth_user"] is None:
         <p>Đăng nhập → Chọn bệnh nhân → Thu thập dữ liệu → Phân tích AI → Bác sĩ đánh giá → Lưu phiên và xuất báo cáo.</p></div>''',unsafe_allow_html=True)
         if st.session_state.get("public_view") == "about":
             st.info("EmotionAI là đồ án thử nghiệm. Kết quả AI và PHQ-9 hỗ trợ tham khảo, không phải chẩn đoán y khoa. Dữ liệu BPM mô phỏng không phải số đo thật.")
-        st.markdown('''<div class="landing-footer"><div><h3>🧠 EmotionAI</h3><p>Nền tảng AI phân tích cảm xúc đa phương thức dành cho chuyên gia tâm lý.</p></div>
+        st.markdown('''<div class="landing-footer"><div><h3>✦ Alone</h3><p>Powered by EmotionAI · Nền tảng hỗ trợ phân tích cảm xúc đa phương thức.</p></div>
         <div><h4>Chức năng</h4><p>Khuôn mặt · Giọng nói · Nhịp tim<br>PHQ-9 · Dashboard · PDF</p></div>
         <div><h4>Thông tin dự án</h4><p>Đồ án Công nghệ phần mềm nâng cao<br>Python · Streamlit · SQLite</p></div>
-        <div class="footer-bottom">© 2026 EmotionAI · Sản phẩm phục vụ học tập và nghiên cứu</div></div>''',unsafe_allow_html=True)
+        <div class="footer-bottom">© 2026 Alone Team · EmotionAI là hệ thống AI hỗ trợ phân tích cảm xúc · Sản phẩm phục vụ học tập và nghiên cứu</div></div>''',unsafe_allow_html=True)
     st.stop()
 
 # Chỉ truy cập thông tin người dùng sau khi đã xác thực.
@@ -215,8 +220,8 @@ def change_page(page):
         st.session_state["current_menu"] = page
 
 
-st.sidebar.markdown("## 🧠 EmotionAI")
-st.sidebar.caption("AI Emotion Analysis Platform")
+st.sidebar.markdown(f'<div class="alone-sidebar-brand">{LOGO_HTML}<div><strong>Alone</strong><small>Powered by EmotionAI</small></div></div>', unsafe_allow_html=True)
+st.sidebar.caption("HỆ THỐNG PHÂN TÍCH CẢM XÚC AI")
 if st.session_state.get("current_menu") not in MENU_OPTIONS:
     st.session_state["current_menu"] = MENU_OPTIONS[0]
 
@@ -235,9 +240,9 @@ st.sidebar.caption("Đồ án Công nghệ phần mềm nâng cao")
 # ==========================================
 
 # Thanh thương hiệu phong cách website hiện đại
-st.markdown("""<div class="emotion-topbar"><span>✦ EMOTIONAI</span><span>AI hỗ trợ phân tích cảm xúc đa phương thức</span></div>""", unsafe_allow_html=True)
+st.markdown("""<div class="emotion-topbar"><span>✦ ALONE</span><span>Powered by EmotionAI · Phân tích cảm xúc đa phương thức</span></div>""", unsafe_allow_html=True)
 if menu != "🏠 Trang chủ":
-    st.markdown(f"<div class='emotion-page-heading'><span>EMOTIONAI · AI WORKSPACE</span><h1>{menu}</h1><p>Nền tảng phân tích cảm xúc và theo dõi kết quả theo từng phiên</p></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='emotion-page-heading'><span>ALONE · EMOTIONAI WORKSPACE</span><h1>{menu}</h1><p>Nền tảng phân tích cảm xúc và theo dõi kết quả theo từng phiên</p></div>", unsafe_allow_html=True)
 
 
 
@@ -1058,5 +1063,5 @@ elif menu == "👤 Hồ sơ cá nhân":
 st.divider()
 
 st.caption(
-    "EmotionAI | Đồ án Công nghệ phần mềm nâng cao"
+    "Alone | Hệ thống EmotionAI · Đồ án Công nghệ phần mềm nâng cao"
 )

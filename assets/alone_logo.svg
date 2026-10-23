@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Alone AI logo">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#00c6ad"/><stop offset=".58" stop-color="#087f75"/><stop offset="1" stop-color="#053d47"/></linearGradient><linearGradient id="line" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3fff8"/><stop offset="1" stop-color="#b3f4d8"/></linearGradient></defs>
+<rect width="256" height="256" rx="57" fill="url(#bg)"/>
+<circle cx="194" cy="53" r="45" fill="#b6ffdc" opacity=".09"/>
+<circle cx="57" cy="203" r="60" fill="#a4f4db" opacity=".08"/>
+<path d="M159 206h-59c-5-16-3-32-2-43-23-14-36-35-36-63 0-40 30-70 69-70 42 0 72 31 72 70 0 19-7 34-18 47l14 19c4 6 1 13-6 14l-21 2v23" fill="none" stroke="url(#line)" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M100 95c-11-25 23-42 39-22 17-20 47-3 37 22 21 14 6 40-14 37-8 18-30 20-42 7-19 9-38-11-27-27-7-7-6-14 7-17Z" fill="none" stroke="#d6fff1" stroke-width="6" stroke-linejoin="round"/>
+<path d="M117 84l20 16 24-14M137 100l-2 28 27-4M137 100l-30 18" fill="none" stroke="#b8ffe3" stroke-width="5" stroke-linecap="round"/>
+<g fill="#ffffff"><circle cx="117" cy="84" r="6"/><circle cx="161" cy="86" r="6"/><circle cx="137" cy="100" r="6"/><circle cx="135" cy="128" r="6"/><circle cx="162" cy="124" r="6"/><circle cx="107" cy="118" r="6"/></g>
+<path d="M38 58c12 1 20-6 24-20 4 14 12 21 24 20-12 3-20 11-24 25-4-14-12-22-24-25Z" fill="#d5fff0" opacity=".8"/>
+</svg>
