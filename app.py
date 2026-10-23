@@ -64,7 +64,7 @@ if "auth_user" not in st.session_state:
     st.session_state["auth_user"] = None
 
 # Đồng bộ danh tính Google (nếu đăng nhập qua Google).
-if st.user.is_logged_in:
+if st.user.get("is_logged_in", False):
     try:
         google_user = sync_google_user()
         if google_user is None:
