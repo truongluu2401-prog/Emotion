@@ -47,6 +47,27 @@ LOGO_DATA = "data:image/svg+xml;base64," + base64.b64encode(LOGO_PATH.read_bytes
 LOGO_HTML = f'<img class="alone-logo" src="{LOGO_DATA}" alt="Logo Alone" />' if LOGO_DATA else '<span class="alone-logo-fallback">✧</span>'
 
 
+def show_home_social_links():
+    """Chỉ gọi tại trang chủ; mở mạng xã hội trong tab mới."""
+    facebook_url = "https://www.facebook.com/p/ALONE-AI-61595586518987/"
+    tiktok_url = "https://www.tiktok.com/@laanhma3"
+    facebook_icon = "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg"
+    tiktok_icon = "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/tiktok.svg"
+    # HTML nối thành một dòng để Markdown không hiểu nhầm là khối mã.
+    social_html = (
+        '<div style="display:flex;justify-content:center;align-items:center;gap:28px;margin:26px 0;">'
+        f'<a href="{facebook_url}" target="_blank" rel="noopener noreferrer" title="Facebook Alone AI" '
+        'style="display:inline-flex;align-items:center;text-decoration:none;">'
+        f'<img src="{facebook_icon}" alt="Facebook" width="40" height="40" '
+        'style="filter:invert(30%) sepia(95%) saturate(1800%) hue-rotate(200deg);"></a>'
+        f'<a href="{tiktok_url}" target="_blank" rel="noopener noreferrer" title="TikTok Alone AI" '
+        'style="display:inline-flex;align-items:center;text-decoration:none;">'
+        f'<img src="{tiktok_icon}" alt="TikTok" width="40" height="40"></a>'
+        '</div>'
+    )
+    st.markdown(social_html, unsafe_allow_html=True)
+
+
 # Tải giao diện CSS
 if CSS_PATH.exists():
     css_content = CSS_PATH.read_text(encoding="utf-8")
@@ -194,22 +215,12 @@ if st.session_state["auth_user"] is None:
         <p>Đăng nhập → Chọn bệnh nhân → Thu thập dữ liệu → Phân tích AI → Bác sĩ đánh giá → Lưu phiên và xuất báo cáo.</p></div>''',unsafe_allow_html=True)
         if st.session_state.get("public_view") == "about":
             st.info("EmotionAI là đồ án thử nghiệm. Kết quả AI và PHQ-9 hỗ trợ tham khảo, không phải chẩn đoán y khoa. Dữ liệu BPM mô phỏng không phải số đo thật.")
+        show_home_social_links()
         st.markdown('''<div class="landing-footer"><div><h3>✦ Alone</h3><p>Powered by EmotionAI · Nền tảng hỗ trợ phân tích cảm xúc đa phương thức.</p></div>
         <div><h4>Chức năng</h4><p>Khuôn mặt · Giọng nói · Nhịp tim<br>PHQ-9 · Dashboard · PDF</p></div>
         <div><h4>Thông tin dự án</h4><p>Đồ án Công nghệ phần mềm nâng cao<br>Python · Streamlit · Supabase PostgreSQL</p></div>
         <div class="footer-bottom">© 2026 Alone Team · EmotionAI là hệ thống AI hỗ trợ phân tích cảm xúc · Sản phẩm phục vụ học tập và nghiên cứu</div></div>''',unsafe_allow_html=True)
         
-    # Mạng xã hội ALONE AI
-       # Mạng xã hội - chỉ hiển thị ở trang chủ công khai
-    st.markdown(
-        """
-<div style="display:flex;justify-content:center;align-items:center;gap:28px;margin:25px 0;">
-<a href="https://www.facebook.com/p/ALONE-AI-61595586518987/" target="_blank" rel="noopener noreferrer" title="Facebook Alone AI"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg" width="40" height="40" alt="Facebook" style="filter:invert(30%) sepia(95%) saturate(1800%) hue-rotate(200deg);"></a>
-<a href="https://www.tiktok.com/@laanhma3" target="_blank" rel="noopener noreferrer" title="TikTok Alone AI"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/tiktok.svg" width="40" height="40" alt="TikTok"></a>
-</div>
-        """,
-        unsafe_allow_html=True,
-    )
     st.stop()
 
 # Chỉ truy cập thông tin người dùng sau khi đã xác thực.
@@ -497,6 +508,8 @@ if menu == "🏠 Trang chủ":
         "hoặc chẩn đoán y tế."
     )
 
+
+    show_home_social_links()
 
 # ==========================================
 # 5. NHẬN DIỆN KHUÔN MẶT
@@ -1152,51 +1165,6 @@ elif menu == "👤 Hồ sơ cá nhân":
 # ==========================================
 # 11. CHÂN TRANG WEBSITE
 # ==========================================
-
-# ==========================================
-# FACEBOOK & TIKTOK - ALONE AI
-# ==========================================
-
-st.markdown(
-    """
-    <div style="
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        gap:24px;
-        margin-top:25px;
-        margin-bottom:20px;
-    ">
-        <a href="https://www.facebook.com/p/ALONE-AI-61595586518987/"
-           target="_blank"
-           rel="noopener noreferrer"
-           title="Facebook Alone AI"
-           style="text-decoration:none;">
-            <img
-                src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg"
-                alt="Facebook"
-                width="38"
-                height="38"
-                style="filter:invert(28%) sepia(89%) saturate(1500%) hue-rotate(200deg);"
-            >
-        </a>
-
-        <a href="https://www.tiktok.com/@laanhma3"
-           target="_blank"
-           rel="noopener noreferrer"
-           title="TikTok Alone AI"
-           style="text-decoration:none;">
-            <img
-                src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/tiktok.svg"
-                alt="TikTok"
-                width="38"
-                height="38"
-            >
-        </a>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 st.divider()
 
