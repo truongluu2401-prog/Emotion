@@ -9,6 +9,8 @@ from modules.auth_database import init_auth_database
 from modules.doctor_approval import initialize as init_doctor_approval, get_application, approved_doctors
 from modules.doctor_profile import initialize as init_doctor_profile
 from modules.doctor_profile_ui import show_doctor_profile, show_doctor_directory
+from modules.appointments import initialize as init_appointments
+from modules.appointments_ui import show_patient_appointments, show_doctor_appointments
 from modules.auth_service import refresh_user
 from modules.admin_ui import show_admin_dashboard
 from modules.profile_ui import show_profile_page
@@ -65,6 +67,7 @@ init_database()
 init_auth_database()
 init_doctor_approval()
 init_doctor_profile()
+init_appointments()
 
 # ==========================================
 # ĐĂNG KÝ - ĐĂNG NHẬP - ĐĂNG XUẤT
@@ -217,8 +220,10 @@ if user["role"] != "admin":
     if user.get("account_type") == "doctor":
         MENU_OPTIONS.append("📈 AI Dashboard bác sĩ")
         MENU_OPTIONS.append("🩺 Trạng thái hồ sơ bác sĩ")
+        MENU_OPTIONS.append("🗓️ Quản lý lịch hẹn")
     else:
         MENU_OPTIONS.append("🩺 Danh sách bác sĩ")
+        MENU_OPTIONS.append("📅 Đặt lịch khám")
 else:
     MENU_OPTIONS.append("🛡️ Quản trị hệ thống")
 
@@ -1075,6 +1080,17 @@ elif menu == "🩺 Trạng thái hồ sơ bác sĩ":
 
 elif menu == "🩺 Danh sách bác sĩ":
     show_doctor_directory()
+
+elif menu == "📅 Đặt lịch khám":
+    show_patient_appointments(user["id"])
+
+elif menu == "🗓️ Quản lý lịch hẹn":
+    from modules.doctor_approval import require_approved_doctor
+    try:
+        require_approved_doctor(user["id"])
+        show_doctor_appointments(user["id"])
+    except PermissionError as exc:
+        st.warning(str(exc))
 
 elif menu == "🛡️ Quản trị hệ thống":
     if user["role"] != "admin":
