@@ -6,8 +6,9 @@ from modules.google_auth import sync_google_user, google_is_logged_in
 from pathlib import Path
 import base64
 from modules.auth_database import init_auth_database
-from modules.cloud_admin import bootstrap_cloud_admin
 from modules.doctor_approval import initialize as init_doctor_approval, get_application, approved_doctors
+from modules.doctor_profile import initialize as init_doctor_profile
+from modules.doctor_profile_ui import show_doctor_profile, show_public_doctor_details
 from modules.auth_service import refresh_user
 from modules.admin_ui import show_admin_dashboard
 from modules.profile_ui import show_profile_page
@@ -63,7 +64,7 @@ if MODERN_CSS.exists():
 init_database()
 init_auth_database()
 init_doctor_approval()
-bootstrap_cloud_admin()
+init_doctor_profile()
 
 # ==========================================
 # ĐĂNG KÝ - ĐĂNG NHẬP - ĐĂNG XUẤT
@@ -1070,6 +1071,7 @@ elif menu == "🩺 Trạng thái hồ sơ bác sĩ":
         st.write("**Bằng cấp:**", application["degree"])
         st.write("**Chuyên ngành:**", application["specialty"])
         if application["review_note"]: st.info(application["review_note"])
+        show_doctor_profile(user["id"])
 
 elif menu == "🩺 Danh sách bác sĩ":
     st.header("🩺 Đội ngũ bác sĩ")
@@ -1083,6 +1085,7 @@ elif menu == "🩺 Danh sách bác sĩ":
             st.write(f"**Bằng cấp:** {doctor['degree']}")
             st.write(f"**Kinh nghiệm:** {doctor['experience_years']} năm")
             st.write(doctor['bio'])
+            show_public_doctor_details(doctor["id"])
             st.caption("Chức năng đặt lịch sẽ được bổ sung ở Bước 11.4.")
 
 elif menu == "🛡️ Quản trị hệ thống":
