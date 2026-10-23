@@ -87,7 +87,7 @@ def get_user_by_id(user_id):
         return dict(row) if row else None
 
 
-def create_user(full_name, email, password_hash):
+def create_user(full_name, email, password_hash, account_type="patient", doctor_application=None):
     """Tạo tài khoản người dùng thông thường."""
 
     full_name = full_name.strip()
@@ -128,7 +128,20 @@ def create_user(full_name, email, password_hash):
             )
         )
 
-        return cursor.lastrowid
+        user_id = cursor.lastrowid
+        if account_type not in ('patient', 'doctor'):
+            raise ValueError('Vai trò không hợp lệ.')
+        conn.execute('INSERT INTO account_types (user_id, account_type) VALUES (?, ?)', (user_id, account_type))
+        if account_type == 'doctor':
+            app = doctor_application
+            if not app:
+                raise ValueError('Thiếu hồ sơ bác sĩ.')
+            conn.execute('''INSERT INTO doctor_applications
+                (user_id,school,degree,specialty,license_number,experience_years,bio,document_name,document_data,updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?)''', (user_id, app['school'], app['degree'], app['specialty'],
+                app['license_number'], app['experience_years'], app.get('bio',''), app['document_name'],
+                app['document_data'], datetime.now(timezone.utc).isoformat()))
+        return user_id
 
 
 def get_all_users():

@@ -6,6 +6,7 @@ from modules.google_auth import sync_google_user, google_is_logged_in
 from pathlib import Path
 import base64
 from modules.auth_database import init_auth_database
+from modules.doctor_approval import initialize as init_doctor_approval, get_application, approved_doctors
 from modules.auth_service import refresh_user
 from modules.admin_ui import show_admin_dashboard
 from modules.profile_ui import show_profile_page
@@ -60,6 +61,7 @@ if MODERN_CSS.exists():
 # Khởi tạo SQLite
 init_database()
 init_auth_database()
+init_doctor_approval()
 
 # ==========================================
 # ĐĂNG KÝ - ĐĂNG NHẬP - ĐĂNG XUẤT
@@ -207,7 +209,14 @@ MENU_OPTIONS = [
     "👤 Hồ sơ cá nhân"
 ]
 
-if user["role"] == "admin":
+if user["role"] != "admin":
+    MENU_OPTIONS = [item for item in MENU_OPTIONS if item not in ("👥 Hồ sơ bệnh nhân", "📈 AI Dashboard bác sĩ")]
+    if user.get("account_type") == "doctor":
+        MENU_OPTIONS.append("📈 AI Dashboard bác sĩ")
+        MENU_OPTIONS.append("🩺 Trạng thái hồ sơ bác sĩ")
+    else:
+        MENU_OPTIONS.append("🩺 Danh sách bác sĩ")
+else:
     MENU_OPTIONS.append("🛡️ Quản trị hệ thống")
 
 if "current_menu" not in st.session_state:
@@ -1043,7 +1052,36 @@ elif menu == "🧠 Phân tích cảm xúc tổng hợp":
 
 
 elif menu == "📈 AI Dashboard bác sĩ":
-    show_doctor_dashboard(user["id"])
+    from modules.doctor_approval import require_approved_doctor
+    try:
+        require_approved_doctor(user["id"])
+        show_doctor_dashboard(user["id"])
+    except PermissionError as exc:
+        st.warning(str(exc))
+
+elif menu == "🩺 Trạng thái hồ sơ bác sĩ":
+    application = get_application(user["id"])
+    if application:
+        st.header("🩺 Hồ sơ bác sĩ")
+        st.write("**Trạng thái:**", application["status"])
+        st.write("**Trường đào tạo:**", application["school"])
+        st.write("**Bằng cấp:**", application["degree"])
+        st.write("**Chuyên ngành:**", application["specialty"])
+        if application["review_note"]: st.info(application["review_note"])
+
+elif menu == "🩺 Danh sách bác sĩ":
+    st.header("🩺 Đội ngũ bác sĩ")
+    doctors = approved_doctors()
+    if not doctors: st.info("Hiện chưa có bác sĩ được xác minh.")
+    for doctor in doctors:
+        with st.container(border=True):
+            st.subheader(doctor["full_name"])
+            st.write(f"**Chuyên ngành:** {doctor['specialty']}")
+            st.write(f"**Trường đào tạo:** {doctor['school']}")
+            st.write(f"**Bằng cấp:** {doctor['degree']}")
+            st.write(f"**Kinh nghiệm:** {doctor['experience_years']} năm")
+            st.write(doctor['bio'])
+            st.caption("Chức năng đặt lịch sẽ được bổ sung ở Bước 11.4.")
 
 elif menu == "🛡️ Quản trị hệ thống":
     if user["role"] != "admin":

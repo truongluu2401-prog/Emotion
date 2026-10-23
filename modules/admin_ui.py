@@ -10,6 +10,7 @@ from modules.admin_service import (
 
 
 def show_admin_dashboard(admin_id):
+    from modules.doctor_admin_ui import show_doctor_approvals
     st.header("🛡️ Admin Dashboard")
     st.write("Quản lý tài khoản và theo dõi hệ thống EmotionAI.")
 
@@ -20,6 +21,8 @@ def show_admin_dashboard(admin_id):
         st.error(str(e))
         st.stop()
 
+    show_doctor_approvals(admin_id)
+    st.divider()
     st.subheader("📊 Thống kê tài khoản")
 
     col1, col2, col3, col4 = st.columns(4)

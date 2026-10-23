@@ -103,9 +103,11 @@ def refresh_user(user_id):
     if user is None or not user["is_active"]:
         return None
 
+    from modules.doctor_approval import get_account_type
     return {
         "id": user["id"],
         "full_name": user["full_name"],
         "email": user["email"],
-        "role": user["role"]
+        "role": user["role"],
+        "account_type": "admin" if user["role"] == "admin" else get_account_type(user_id)
     }

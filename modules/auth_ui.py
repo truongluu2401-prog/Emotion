@@ -67,13 +67,13 @@ def show_auth_page():
     with center:
 
         st.markdown(
-            '<div class="auth-heading">🧠 EmotionAI</div>',
+            '<div class="auth-heading">🌿 Alone</div>',
             unsafe_allow_html=True
         )
 
         st.markdown(
             '<div class="auth-subtitle">'
-            'AI Emotion Analysis Platform'
+            'Powered by EmotionAI'
             '</div>',
             unsafe_allow_html=True
         )
@@ -87,7 +87,7 @@ def show_auth_page():
 
         if mode == "Đăng ký":
 
-            st.subheader("Sign up for EmotionAI")
+            st.subheader("Đăng ký tài khoản Alone")
 
             # Google/Facebook sẽ tích hợp OAuth thật
             # ở các bước tiếp theo.
@@ -159,9 +159,9 @@ def show_auth_page():
                                 create_user(
                                     full_name=pending["name"],
                                     email=pending["email"],
-                                    password_hash=pending[
-                                        "password_hash"
-                                    ]
+                                    password_hash=pending["password_hash"],
+                                    account_type=pending.get("account_type", "patient"),
+                                    doctor_application=pending.get("doctor_application")
                                 )
 
                                 st.session_state.pop(
@@ -174,7 +174,7 @@ def show_auth_page():
                                     "Hãy chuyển sang Đăng nhập."
                                 )
 
-                            except sqlite3.IntegrityError:
+                            except (sqlite3.IntegrityError, ValueError, KeyError) as exc:
 
                                 st.session_state.pop(
                                     "signup_pending",
@@ -230,7 +230,17 @@ def show_auth_page():
             else:
 
                 with st.form("signup_form"):
-
+                    account_type_label = st.radio("Đăng ký với vai trò", ["Bệnh nhân", "Bác sĩ"], horizontal=True)
+                    account_type = "doctor" if account_type_label == "Bác sĩ" else "patient"
+                    if account_type == "doctor":
+                        st.info("Hồ sơ bác sĩ cần được Admin kiểm tra và phê duyệt trước khi sử dụng chức năng bác sĩ.")
+                        school = st.text_input("Trường đại học / cơ sở đào tạo *")
+                        degree = st.text_input("Bằng cấp chuyên môn *")
+                        specialty = st.text_input("Chuyên ngành *")
+                        license_number = st.text_input("Số chứng chỉ hành nghề / giấy phép *")
+                        experience_years = st.number_input("Số năm kinh nghiệm", min_value=0, max_value=70, step=1)
+                        bio = st.text_area("Giới thiệu chuyên môn")
+                        document = st.file_uploader("Nộp hồ sơ xác minh (PDF, tối đa 2 MB) *", type=["pdf"])
                     email = st.text_input(
                         "Email *",
                         placeholder="example@gmail.com"
@@ -268,7 +278,13 @@ def show_auth_page():
                     username = username.strip()
                     name = full_name.strip() or username
 
-                    if not validate_email(email):
+                    if account_type == "doctor" and (not school.strip() or not degree.strip() or not specialty.strip() or not license_number.strip() or document is None):
+                        st.error("Vui lòng điền đầy đủ hồ sơ và nộp tài liệu PDF.")
+                    elif account_type == "doctor" and document.size > 2 * 1024 * 1024:
+                        st.error("Tệp hồ sơ vượt quá 2 MB.")
+                    elif account_type == "doctor" and not document.getvalue().startswith(b"%PDF-"):
+                        st.error("Tệp hồ sơ không phải PDF hợp lệ.")
+                    elif not validate_email(email):
                         st.error("Email không hợp lệ.")
 
                     elif len(username) < 3:
@@ -304,7 +320,14 @@ def show_auth_page():
                         ).decode("utf-8")
 
                         try:
-
+                            doctor_application = None
+                            if account_type == "doctor":
+                                doctor_application = dict(school=school.strip(), degree=degree.strip(),
+                                    specialty=specialty.strip(), license_number=license_number.strip(),
+                                    experience_years=int(experience_years), bio=bio.strip(),
+                                    document_name="doctor_credentials.pdf", document_data=document.getvalue())
+                            st.session_state["alone_signup_role"] = account_type
+                            st.session_state["alone_signup_doctor"] = doctor_application
                             success, message = issue_otp(
                                 email=email,
                                 name=name,
@@ -312,6 +335,10 @@ def show_auth_page():
                             )
 
                             if success:
+                                pending_data = st.session_state.get("signup_pending")
+                                if pending_data:
+                                    pending_data["account_type"] = st.session_state.get("alone_signup_role", "patient")
+                                    pending_data["doctor_application"] = st.session_state.get("alone_signup_doctor")
                                 st.rerun()
                             else:
                                 st.warning(message)
@@ -329,7 +356,7 @@ def show_auth_page():
 
         else:
 
-            st.subheader("Sign in to EmotionAI")
+            st.subheader("Đăng nhập Alone")
             st.button(
                 "🌐 Continue with Google",
                 key="google_signin",
