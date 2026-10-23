@@ -15,29 +15,53 @@ RESEND_DELAY = 60
 MAX_ATTEMPTS = 5
 
 
+
 def send_email_otp(destination, otp):
-    sender = st.secrets["email"]["address"]
-    password = st.secrets["email"]["app_password"]
+    try:
+        sender = str(st.secrets["email"]["address"]).strip()
+        password = str(
+            st.secrets["email"]["app_password"]
+        ).replace(" ", "").strip()
 
-    message = EmailMessage()
-    message["Subject"] = "EmotionAI - Ma xac thuc dang ky"
-    message["From"] = sender
-    message["To"] = destination
+        message = EmailMessage()
+        message["Subject"] = "Alone - Ma xac thuc OTP"
+        message["From"] = sender
+        message["To"] = destination
 
-    message.set_content(
-        f"Ma OTP dang ky EmotionAI: {otp}\n\n"
-        "Ma co hieu luc trong 5 phut.\n"
-        "Khong chia se ma nay voi bat ky ai."
-    )
+        message.set_content(
+            f"Ma OTP cua ban la: {otp}\n\n"
+            "Ma co hieu luc trong 5 phut.\n"
+            "Khong chia se ma voi bat ky ai."
+        )
 
-    with smtplib.SMTP_SSL(
-        "smtp.gmail.com",
-        465,
-        timeout=20
-    ) as smtp:
-        smtp.login(sender, password)
-        smtp.send_message(message)
+        with smtplib.SMTP_SSL(
+            "smtp.gmail.com",
+            465,
+            timeout=20
+        ) as smtp:
+            smtp.login(sender, password)
+            smtp.send_message(message)
 
+    except KeyError:
+        raise RuntimeError(
+            "Thieu cau hinh email trong Streamlit Secrets."
+        ) from None
+
+    except smtplib.SMTPAuthenticationError:
+        raise RuntimeError(
+            "Gmail tu choi dang nhap. Kiem tra App Password."
+        ) from None
+
+    except (smtplib.SMTPException, OSError) as error:
+        print(
+            "OTP SMTP error type:",
+            type(error).__name__,
+            flush=True
+        )
+        raise RuntimeError(
+            "Khong gui duoc email qua Gmail SMTP. "
+            "Kiem tra Streamlit Cloud Logs."
+        ) from None
 
 def issue_otp(email, name, password_hash):
     pending = st.session_state.get("signup_pending")
