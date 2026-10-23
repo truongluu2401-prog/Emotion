@@ -1,12 +1,14 @@
 
 import re
-import sqlite3
 import bcrypt
+
+from psycopg.errors import UniqueViolation
 
 from modules.auth_database import (
     create_user,
     get_user_by_email,
     get_user_by_id,
+    get_connection,
 )
 
 
@@ -16,6 +18,7 @@ def validate_email(email):
 
 
 def register_user(full_name, email, password, confirm_password):
+    """Đăng ký tài khoản trực tiếp trên Supabase."""
     full_name = full_name.strip()
     email = email.strip().lower()
 
@@ -46,19 +49,20 @@ def register_user(full_name, email, password, confirm_password):
         user_id = create_user(
             full_name=full_name,
             email=email,
-            password_hash=password_hash
+            password_hash=password_hash,
+            account_type="patient"
         )
 
         return True, (
-            f"Đăng ký thành công! "
-            f"Mã tài khoản: {user_id}"
+            f"Đăng ký thành công! Mã tài khoản: {user_id}"
         )
 
-    except sqlite3.IntegrityError:
-        return False, "Email này đã tồn tại."
+    except UniqueViolation:
+        return False, "Email này đã được đăng ký."
 
 
 def login_user(email, password):
+    """Đăng nhập bằng tài khoản lưu trên Supabase."""
     email = email.strip().lower()
 
     user = get_user_by_email(email)
@@ -86,28 +90,46 @@ def login_user(email, password):
     if not password_valid:
         return False, "Email hoặc mật khẩu không đúng.", None
 
-    # Không đưa password_hash vào session
     safe_user = {
         "id": user["id"],
         "full_name": user["full_name"],
         "email": user["email"],
-        "role": user["role"]
+        "role": user["role"],
     }
 
     return True, "Đăng nhập thành công!", safe_user
 
 
 def refresh_user(user_id):
+    """Làm mới phiên đăng nhập từ Supabase."""
     user = get_user_by_id(user_id)
 
     if user is None or not user["is_active"]:
         return None
 
-    from modules.doctor_approval import get_account_type
+    if user["role"] == "admin":
+        account_type = "admin"
+    else:
+        with get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT account_type
+                    FROM account_types
+                    WHERE user_id = %s
+                    """,
+                    (user_id,)
+                )
+                row = cur.fetchone()
+
+        account_type = (
+            row["account_type"] if row else "patient"
+        )
+
     return {
         "id": user["id"],
         "full_name": user["full_name"],
         "email": user["email"],
         "role": user["role"],
-        "account_type": "admin" if user["role"] == "admin" else get_account_type(user_id)
+        "account_type": account_type,
     }

@@ -1,95 +1,92 @@
 
-import sqlite3
-from pathlib import Path
 from datetime import datetime, timezone
 
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "emotionai.db"
+import psycopg
+import streamlit as st
+from psycopg.rows import dict_row
 
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    """Kết nối Supabase PostgreSQL."""
+    database_url = st.secrets["database"]["url"]
+
+    return psycopg.connect(
+        database_url,
+        row_factory=dict_row
+    )
 
 
 def init_auth_database():
-    """Tạo các bảng tài khoản nếu chưa tồn tại."""
+    """
+    Kiểm tra các bảng tài khoản trên Supabase.
+
+    Các bảng đã được tạo bằng Supabase SQL Editor.
+    Không tự tạo lại để tránh sai cấu trúc.
+    """
+    required_tables = (
+        "users",
+        "auth_identities",
+        "account_types",
+        "doctor_applications",
+    )
 
     with get_connection() as conn:
+        with conn.cursor() as cur:
+            for table_name in required_tables:
+                cur.execute(
+                    "SELECT to_regclass(%s) AS table_name",
+                    (f"public.{table_name}",)
+                )
 
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                full_name TEXT NOT NULL,
-                email TEXT NOT NULL COLLATE NOCASE UNIQUE,
-                password_hash TEXT,
-                role TEXT NOT NULL DEFAULT 'user'
-                    CHECK(role IN ('admin', 'user')),
-                is_active INTEGER NOT NULL DEFAULT 1
-                    CHECK(is_active IN (0, 1)),
-                created_at TEXT NOT NULL
-            )
-        """)
+                result = cur.fetchone()
 
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS auth_identities (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                provider TEXT NOT NULL
-                    CHECK(provider IN ('google', 'facebook')),
-                provider_user_id TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-
-                FOREIGN KEY(user_id)
-                    REFERENCES users(id)
-                    ON DELETE CASCADE,
-
-                UNIQUE(provider, provider_user_id),
-                UNIQUE(user_id, provider)
-            )
-        """)
+                if result["table_name"] is None:
+                    raise RuntimeError(
+                        f"Supabase chưa có bảng: {table_name}"
+                    )
 
 
 def get_user_by_email(email):
-    """Tìm người dùng theo email."""
-
+    """Tìm người dùng theo email trên Supabase."""
     with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT *
+                FROM users
+                WHERE LOWER(email) = LOWER(%s)
+                LIMIT 1
+                """,
+                (email.strip(),)
+            )
 
-        row = conn.execute(
-            """
-            SELECT *
-            FROM users
-            WHERE email = ?
-            """,
-            (email.strip(),)
-        ).fetchone()
-
-        return dict(row) if row else None
+            return cur.fetchone()
 
 
 def get_user_by_id(user_id):
-    """Tìm người dùng theo ID."""
-
+    """Tìm người dùng theo ID trên Supabase."""
     with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT *
+                FROM users
+                WHERE id = %s
+                """,
+                (user_id,)
+            )
 
-        row = conn.execute(
-            """
-            SELECT *
-            FROM users
-            WHERE id = ?
-            """,
-            (user_id,)
-        ).fetchone()
-
-        return dict(row) if row else None
+            return cur.fetchone()
 
 
-def create_user(full_name, email, password_hash, account_type="patient", doctor_application=None):
-    """Tạo tài khoản người dùng thông thường."""
-
+def create_user(
+    full_name,
+    email,
+    password_hash,
+    account_type="patient",
+    doctor_application=None
+):
+    """Đăng ký tài khoản Bệnh nhân hoặc Bác sĩ trên Supabase."""
     full_name = full_name.strip()
     email = email.strip().lower()
 
@@ -102,83 +99,125 @@ def create_user(full_name, email, password_hash, account_type="patient", doctor_
     if not password_hash:
         raise ValueError("Mật khẩu chưa được mã hóa.")
 
-    created_at = datetime.now(
-        timezone.utc
-    ).isoformat(timespec="seconds")
+    if account_type not in ("patient", "doctor"):
+        raise ValueError("Vai trò không hợp lệ.")
+
+    if account_type == "doctor" and not doctor_application:
+        raise ValueError("Thiếu hồ sơ bác sĩ.")
+
+    created_at = datetime.now(timezone.utc).isoformat(
+        timespec="seconds"
+    )
 
     with get_connection() as conn:
+        with conn.cursor() as cur:
 
-        cursor = conn.execute(
-            """
-            INSERT INTO users (
-                full_name,
-                email,
-                password_hash,
-                role,
-                is_active,
-                created_at
+            cur.execute(
+                """
+                INSERT INTO users (
+                    full_name,
+                    email,
+                    password_hash,
+                    role,
+                    is_active,
+                    created_at
+                )
+                VALUES (%s, %s, %s, 'user', 1, %s)
+                RETURNING id
+                """,
+                (
+                    full_name,
+                    email,
+                    password_hash,
+                    created_at
+                )
             )
-            VALUES (?, ?, ?, 'user', 1, ?)
-            """,
-            (
-                full_name,
-                email,
-                password_hash,
-                created_at
-            )
-        )
 
-        user_id = cursor.lastrowid
-        if account_type not in ('patient', 'doctor'):
-            raise ValueError('Vai trò không hợp lệ.')
-        conn.execute('INSERT INTO account_types (user_id, account_type) VALUES (?, ?)', (user_id, account_type))
-        if account_type == 'doctor':
-            app = doctor_application
-            if not app:
-                raise ValueError('Thiếu hồ sơ bác sĩ.')
-            conn.execute('''INSERT INTO doctor_applications
-                (user_id,school,degree,specialty,license_number,experience_years,bio,document_name,document_data,updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?)''', (user_id, app['school'], app['degree'], app['specialty'],
-                app['license_number'], app['experience_years'], app.get('bio',''), app['document_name'],
-                app['document_data'], datetime.now(timezone.utc).isoformat()))
+            user_id = cur.fetchone()["id"]
+
+            cur.execute(
+                """
+                INSERT INTO account_types (
+                    user_id,
+                    account_type
+                )
+                VALUES (%s, %s)
+                """,
+                (user_id, account_type)
+            )
+
+            if account_type == "doctor":
+                app = doctor_application
+
+                cur.execute(
+                    """
+                    INSERT INTO doctor_applications (
+                        user_id,
+                        school,
+                        degree,
+                        specialty,
+                        license_number,
+                        experience_years,
+                        bio,
+                        document_name,
+                        document_data,
+                        updated_at
+                    )
+                    VALUES (
+                        %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s
+                    )
+                    """,
+                    (
+                        user_id,
+                        app["school"],
+                        app["degree"],
+                        app["specialty"],
+                        app["license_number"],
+                        app["experience_years"],
+                        app.get("bio", ""),
+                        app["document_name"],
+                        app["document_data"],
+                        datetime.now(timezone.utc).isoformat()
+                    )
+                )
+
+        conn.commit()
         return user_id
 
 
 def get_all_users():
-    """Lấy danh sách người dùng cho Admin."""
-
+    """Lấy danh sách tài khoản cho Admin."""
     with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    id,
+                    full_name,
+                    email,
+                    role,
+                    is_active,
+                    created_at
+                FROM users
+                ORDER BY id DESC
+                """
+            )
 
-        rows = conn.execute(
-            """
-            SELECT
-                id,
-                full_name,
-                email,
-                role,
-                is_active,
-                created_at
-            FROM users
-            ORDER BY id DESC
-            """
-        ).fetchall()
-
-        return [dict(row) for row in rows]
+            return cur.fetchall()
 
 
 def get_user_count():
-    """Đếm số tài khoản."""
-
+    """Đếm số tài khoản trên Supabase."""
     with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(*) AS total FROM users"
+            )
 
-        row = conn.execute(
-            "SELECT COUNT(*) AS total FROM users"
-        ).fetchone()
-
-        return row["total"]
+            return cur.fetchone()["total"]
 
 
 if __name__ == "__main__":
     init_auth_database()
-    print("AUTH DATABASE OK")
-    print("Da tao bang users va auth_identities.")
+    print("SUPABASE AUTH DATABASE OK")

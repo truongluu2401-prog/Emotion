@@ -1,7 +1,7 @@
 
 import streamlit as st
 import pandas as pd
-import sqlite3
+import psycopg
 from modules.google_auth import sync_google_user, google_is_logged_in
 from pathlib import Path
 import base64
@@ -93,8 +93,25 @@ if google_is_logged_in():
 # Kiểm tra lại tài khoản với SQLite, bao gồm trạng thái bị khóa.
 if st.session_state["auth_user"] is not None:
     current_id = st.session_state["auth_user"]["id"]
-    st.session_state["auth_user"] = refresh_user(current_id)
 
+    try:
+        refreshed_user = refresh_user(current_id)
+
+        if refreshed_user is None:
+            st.session_state["auth_user"] = None
+            st.warning(
+                "Phiên đăng nhập không còn hợp lệ. "
+                "Vui lòng đăng nhập lại."
+            )
+        else:
+            st.session_state["auth_user"] = refreshed_user
+
+    except psycopg.Error as e:
+        st.error(
+            "Không thể kiểm tra tài khoản trên Supabase."
+        )
+        st.exception(e)
+        st.stop()
 
 def logout_user():
     st.session_state["auth_user"] = None
@@ -179,15 +196,45 @@ if st.session_state["auth_user"] is None:
             st.info("EmotionAI là đồ án thử nghiệm. Kết quả AI và PHQ-9 hỗ trợ tham khảo, không phải chẩn đoán y khoa. Dữ liệu BPM mô phỏng không phải số đo thật.")
         st.markdown('''<div class="landing-footer"><div><h3>✦ Alone</h3><p>Powered by EmotionAI · Nền tảng hỗ trợ phân tích cảm xúc đa phương thức.</p></div>
         <div><h4>Chức năng</h4><p>Khuôn mặt · Giọng nói · Nhịp tim<br>PHQ-9 · Dashboard · PDF</p></div>
-        <div><h4>Thông tin dự án</h4><p>Đồ án Công nghệ phần mềm nâng cao<br>Python · Streamlit · SQLite</p></div>
+        <div><h4>Thông tin dự án</h4><p>Đồ án Công nghệ phần mềm nâng cao<br>Python · Streamlit · Supabase PostgreSQL</p></div>
         <div class="footer-bottom">© 2026 Alone Team · EmotionAI là hệ thống AI hỗ trợ phân tích cảm xúc · Sản phẩm phục vụ học tập và nghiên cứu</div></div>''',unsafe_allow_html=True)
+        
+    # Mạng xã hội ALONE AI
+    st.markdown(
+        """
+<div style="display:flex;justify-content:center;align-items:center;gap:30px;margin:25px 0;">
+    <a href="https://www.facebook.com/p/ALONE-AI-61595586518987/"
+       target="_blank" rel="noopener noreferrer">
+        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg"
+             width="42" height="42" alt="Facebook"
+             style="filter:invert(30%) sepia(95%) saturate(1800%) hue-rotate(200deg);">
+    </a>
+    <a href="https://www.tiktok.com/@laanhma3"
+       target="_blank" rel="noopener noreferrer">
+        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/tiktok.svg"
+             width="42" height="42" alt="TikTok">
+    </a>
+</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.stop()
 
 # Chỉ truy cập thông tin người dùng sau khi đã xác thực.
 user = st.session_state["auth_user"]
 if st.session_state.get("pending_menu"):
-    st.session_state["current_menu"] = st.session_state.pop("pending_menu")
+    st.session_state.pop("pending_menu", None)
     st.session_state["public_view"] = "home"
+
+    if user["role"] == "admin":
+        st.session_state["current_menu"] = "🛡️ Quản trị hệ thống"
+
+    elif user.get("account_type") == "doctor":
+        st.session_state["current_menu"] = "🩺 Trạng thái hồ sơ bác sĩ"
+
+    else:
+        st.session_state["current_menu"] = "🏠 Trang chủ"
 
 
 st.sidebar.success(f"Xin chào, {user['full_name']}")
@@ -228,7 +275,15 @@ else:
     MENU_OPTIONS.append("🛡️ Quản trị hệ thống")
 
 if "current_menu" not in st.session_state:
-    st.session_state["current_menu"] = MENU_OPTIONS[0]
+
+    if user["role"] == "admin":
+        st.session_state["current_menu"] = "🛡️ Quản trị hệ thống"
+
+    elif user.get("account_type") == "doctor":
+        st.session_state["current_menu"] = "🩺 Trạng thái hồ sơ bác sĩ"
+
+    else:
+        st.session_state["current_menu"] = "🏠 Trang chủ"
 
 
 def change_page(page):
@@ -422,7 +477,7 @@ if menu == "🏠 Trang chủ":
         st.metric("AI khuôn mặt", "DeepFace")
 
     with tech4:
-        st.metric("Cơ sở dữ liệu", "SQLite")
+        st.metric("Cơ sở dữ liệu", "Supabase PostgreSQL")
 
     st.divider()
 
@@ -1106,6 +1161,51 @@ elif menu == "👤 Hồ sơ cá nhân":
 # ==========================================
 # 11. CHÂN TRANG WEBSITE
 # ==========================================
+
+# ==========================================
+# FACEBOOK & TIKTOK - ALONE AI
+# ==========================================
+
+st.markdown(
+    """
+    <div style="
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        gap:24px;
+        margin-top:25px;
+        margin-bottom:20px;
+    ">
+        <a href="https://www.facebook.com/p/ALONE-AI-61595586518987/"
+           target="_blank"
+           rel="noopener noreferrer"
+           title="Facebook Alone AI"
+           style="text-decoration:none;">
+            <img
+                src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg"
+                alt="Facebook"
+                width="38"
+                height="38"
+                style="filter:invert(28%) sepia(89%) saturate(1500%) hue-rotate(200deg);"
+            >
+        </a>
+
+        <a href="https://www.tiktok.com/@laanhma3"
+           target="_blank"
+           rel="noopener noreferrer"
+           title="TikTok Alone AI"
+           style="text-decoration:none;">
+            <img
+                src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/tiktok.svg"
+                alt="TikTok"
+                width="38"
+                height="38"
+            >
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.divider()
 
