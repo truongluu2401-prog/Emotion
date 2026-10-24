@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import psycopg
+import sqlite3
 from modules.google_auth import sync_google_user, google_is_logged_in
 from pathlib import Path
 import base64
@@ -22,6 +23,7 @@ from modules.auth_ui import show_auth_page
 from modules.face_emotion import analyze_face, draw_face_results
 from modules.voice_emotion import analyze_voice
 from modules.heart_rate import analyze_heart_rate, simulate_heart_rate
+from modules.chatbot import show_chatbot
 from modules.database import (
     init_database,
     save_analysis,
@@ -258,6 +260,7 @@ MENU_OPTIONS = [
     "🎤 Phân tích giọng nói",
     "❤️ Phân tích nhịp tim",
     "📊 Thống kê kết quả",
+    "💬 Trợ lý AI",
     "🧠 Phân tích cảm xúc tổng hợp",
     "👥 Hồ sơ bệnh nhân",
     "📈 AI Dashboard bác sĩ",
@@ -1156,6 +1159,10 @@ elif menu == "🛡️ Quản trị hệ thống":
         st.error("Bạn không có quyền truy cập.")
         st.stop()
     show_admin_dashboard(user["id"])
+
+
+elif menu == "💬 Trợ lý AI":
+    show_chatbot()
 
 
 elif menu == "👤 Hồ sơ cá nhân":
